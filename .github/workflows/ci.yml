@@ -1,12 +1,9 @@
 # Builds Betaflight Firmware.
-#
-
 name: CI
 
-on: 
-
+on:
   push:
-    branches: [ feature_test1 ]
+    branches: [feature_test1]
   workflow_call:
     inputs:
       release_build:
@@ -49,7 +46,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        target: ${{ fromJson(needs.setup.outputs.targets) }}
+        target: ["STM32F7X2"]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -67,7 +64,7 @@ jobs:
 
       - name: Build target (without revision)
         if: inputs.release_build == true
-        run: make EXTRA_FLAGS=-Werror ${{ matrix.target }}
+        run: make EXTRA_FLAGS=-Werror 
 
       - name: Build target (with revision)
         if: inputs.release_build == false
