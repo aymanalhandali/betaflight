@@ -7161,12 +7161,11 @@ static void cliDshotTelemetryInfo(const char *cmdName, char *cmdline)
             }
 #endif
 
-            cliPrintLinef(" %6d %3d.%02d % 3d %6d %6d %6d %6d %6d",
+            cliPrintLinef(" %6d %3d.%02d %6d %6d %6d %6d %6d",
                           dshotTelemetryState.motorState[i].telemetryData[DSHOT_TELEMETRY_TYPE_TEMPERATURE],
                           dshotTelemetryState.motorState[i].telemetryData[DSHOT_TELEMETRY_TYPE_VOLTAGE] / 4,
                           25 * (dshotTelemetryState.motorState[i].telemetryData[DSHOT_TELEMETRY_TYPE_VOLTAGE] % 4),
                           dshotTelemetryState.motorState[i].telemetryData[DSHOT_TELEMETRY_TYPE_CURRENT],
-                          dshotTelemetryState.motorState[i].telemetryData[DSHOT_TELEMETRY_TYPE_GPS],
                           dshotTelemetryState.motorState[i].telemetryData[DSHOT_TELEMETRY_TYPE_STATE_EVENTS],
                           dshotTelemetryState.motorState[i].telemetryData[DSHOT_TELEMETRY_TYPE_DEBUG1],
                           dshotTelemetryState.motorState[i].telemetryData[DSHOT_TELEMETRY_TYPE_DEBUG2],

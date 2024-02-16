@@ -291,13 +291,6 @@ static void dshot_decode_telemetry_value(uint8_t motorIndex, uint32_t *pDecoded,
             // Set telemetry type
             *pType = DSHOT_TELEMETRY_TYPE_STATE_EVENTS;
             break;
-        case 0x0F00:
-            // extra telemtry data
-            *pDecoded = value & 0x00ff;
-
-            // Set telemetry type
-            *pType = DSHOT_TELEMETRY_TYPE_GPS;
-            break;
 
         default:
             // Decode as eRPM
