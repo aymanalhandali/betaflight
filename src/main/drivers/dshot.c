@@ -265,7 +265,7 @@ static void dshot_decode_telemetry_value(uint8_t motorIndex, uint32_t *pDecoded,
             *pDecoded = value & 0x00ff;
 
             // Set telemetry type
-            *pType = DSHOT_TELEMETRY_TYPE_DEBUG1;
+            *pType = DSHOT_TELEMETRY_TYPE_DEBUG11;
             break;
 
         case 0x0A00:
