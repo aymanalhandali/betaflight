@@ -53,18 +53,21 @@
 
 #include "dshot.h"
 
-#define ERPM_PER_LSB            100.0f
+#define ERPM_PER_LSB 100.0f
 
 void dshotInitEndpoints(const motorConfig_t *motorConfig, float outputLimit, float *outputLow, float *outputHigh, float *disarm, float *deadbandMotor3dHigh, float *deadbandMotor3dLow)
 {
     float outputLimitOffset = DSHOT_RANGE * (1 - outputLimit);
     *disarm = DSHOT_CMD_MOTOR_STOP;
-    if (featureIsEnabled(FEATURE_3D)) {
+    if (featureIsEnabled(FEATURE_3D))
+    {
         *outputLow = DSHOT_MIN_THROTTLE + getDigitalIdleOffset(motorConfig) * (DSHOT_3D_FORWARD_MIN_THROTTLE - 1 - DSHOT_MIN_THROTTLE);
         *outputHigh = DSHOT_MAX_THROTTLE - outputLimitOffset / 2;
         *deadbandMotor3dHigh = DSHOT_3D_FORWARD_MIN_THROTTLE + getDigitalIdleOffset(motorConfig) * (DSHOT_MAX_THROTTLE - DSHOT_3D_FORWARD_MIN_THROTTLE);
         *deadbandMotor3dLow = DSHOT_3D_FORWARD_MIN_THROTTLE - 1 - outputLimitOffset / 2;
-    } else {
+    }
+    else
+    {
         *outputLow = DSHOT_MIN_THROTTLE + getDigitalIdleOffset(motorConfig) * DSHOT_RANGE;
         *outputHigh = DSHOT_MAX_THROTTLE - outputLimitOffset;
     }
@@ -76,15 +79,23 @@ float dshotConvertFromExternal(uint16_t externalValue)
 
     externalValue = constrain(externalValue, PWM_RANGE_MIN, PWM_RANGE_MAX);
 
-    if (featureIsEnabled(FEATURE_3D)) {
-        if (externalValue == PWM_RANGE_MIDDLE) {
+    if (featureIsEnabled(FEATURE_3D))
+    {
+        if (externalValue == PWM_RANGE_MIDDLE)
+        {
             motorValue = DSHOT_CMD_MOTOR_STOP;
-        } else if (externalValue < PWM_RANGE_MIDDLE) {
+        }
+        else if (externalValue < PWM_RANGE_MIDDLE)
+        {
             motorValue = scaleRangef(externalValue, PWM_RANGE_MIN, PWM_RANGE_MIDDLE - 1, DSHOT_3D_FORWARD_MIN_THROTTLE - 1, DSHOT_MIN_THROTTLE);
-        } else {
+        }
+        else
+        {
             motorValue = scaleRangef(externalValue, PWM_RANGE_MIDDLE + 1, PWM_RANGE_MAX, DSHOT_3D_FORWARD_MIN_THROTTLE, DSHOT_MAX_THROTTLE);
         }
-    } else {
+    }
+    else
+    {
         motorValue = (externalValue == PWM_RANGE_MIN) ? DSHOT_CMD_MOTOR_STOP : scaleRangef(externalValue, PWM_RANGE_MIN + 1, PWM_RANGE_MAX, DSHOT_MIN_THROTTLE, DSHOT_MAX_THROTTLE);
     }
 
@@ -95,15 +106,23 @@ uint16_t dshotConvertToExternal(float motorValue)
 {
     float externalValue;
 
-    if (featureIsEnabled(FEATURE_3D)) {
-        if (motorValue == DSHOT_CMD_MOTOR_STOP || motorValue < DSHOT_MIN_THROTTLE) {
+    if (featureIsEnabled(FEATURE_3D))
+    {
+        if (motorValue == DSHOT_CMD_MOTOR_STOP || motorValue < DSHOT_MIN_THROTTLE)
+        {
             externalValue = PWM_RANGE_MIDDLE;
-        } else if (motorValue <= DSHOT_3D_FORWARD_MIN_THROTTLE - 1) {
+        }
+        else if (motorValue <= DSHOT_3D_FORWARD_MIN_THROTTLE - 1)
+        {
             externalValue = scaleRangef(motorValue, DSHOT_MIN_THROTTLE, DSHOT_3D_FORWARD_MIN_THROTTLE - 1, PWM_RANGE_MIDDLE - 1, PWM_RANGE_MIN);
-        } else {
+        }
+        else
+        {
             externalValue = scaleRangef(motorValue, DSHOT_3D_FORWARD_MIN_THROTTLE, DSHOT_MAX_THROTTLE, PWM_RANGE_MIDDLE + 1, PWM_RANGE_MAX);
         }
-    } else {
+    }
+    else
+    {
         externalValue = (motorValue < DSHOT_MIN_THROTTLE) ? PWM_RANGE_MIN : scaleRangef(motorValue, DSHOT_MIN_THROTTLE, DSHOT_MAX_THROTTLE, PWM_RANGE_MIN + 1, PWM_RANGE_MAX);
     }
 
@@ -114,21 +133,24 @@ FAST_CODE uint16_t prepareDshotPacket(dshotProtocolControl_t *pcb)
 {
     uint16_t packet;
 
-    ATOMIC_BLOCK(NVIC_PRIO_DSHOT_DMA) {
+    ATOMIC_BLOCK(NVIC_PRIO_DSHOT_DMA)
+    {
         packet = (pcb->value << 1) | (pcb->requestTelemetry ? 1 : 0);
-        pcb->requestTelemetry = false;    // reset telemetry request to make sure it's triggered only once in a row
+        pcb->requestTelemetry = false; // reset telemetry request to make sure it's triggered only once in a row
     }
 
     // compute checksum
     unsigned csum = 0;
     unsigned csum_data = packet;
-    for (int i = 0; i < 3; i++) {
-        csum ^=  csum_data;   // xor data by nibbles
+    for (int i = 0; i < 3; i++)
+    {
+        csum ^= csum_data; // xor data by nibbles
         csum_data >>= 4;
     }
     // append checksum
 #ifdef USE_DSHOT_TELEMETRY
-    if (useDshotTelemetry) {
+    if (useDshotTelemetry)
+    {
         csum = ~csum;
     }
 #endif
@@ -152,16 +174,19 @@ FAST_DATA_ZERO_INIT static float dshotRpm[MAX_SUPPORTED_MOTORS];
 void initDshotTelemetry(const timeUs_t looptimeUs)
 {
     // if bidirectional DShot is not available
-    if (!motorConfig()->dev.useDshotTelemetry && !featureIsEnabled(FEATURE_ESC_SENSOR)) {
+    if (!motorConfig()->dev.useDshotTelemetry && !featureIsEnabled(FEATURE_ESC_SENSOR))
+    {
         return;
     }
 
     // erpmToHz is used by bidir dshot and ESC telemetry
     erpmToHz = ERPM_PER_LSB / SECONDS_PER_MINUTE / (motorConfig()->motorPoleCount / 2.0f);
 
-    if (motorConfig()->dev.useDshotTelemetry) {
+    if (motorConfig()->dev.useDshotTelemetry)
+    {
         // init LPFs for RPM data
-        for (int i = 0; i < getMotorCount(); i++) {
+        for (int i = 0; i < getMotorCount(); i++)
+        {
             pt1FilterInit(&motorFreqLpf[i], pt1FilterGain(rpmFilterConfig()->rpm_filter_lpf_hz, looptimeUs * 1e-6f));
         }
     }
@@ -170,13 +195,15 @@ void initDshotTelemetry(const timeUs_t looptimeUs)
 static uint32_t dshot_decode_eRPM_telemetry_value(uint16_t value)
 {
     // eRPM range
-    if (value == 0x0fff) {
+    if (value == 0x0fff)
+    {
         return 0;
     }
 
     // Convert value to 16 bit from the GCR telemetry format (eeem mmmm mmmm)
     value = (value & 0x01ff) << ((value & 0xfe00) >> 9);
-    if (!value) {
+    if (!value)
+    {
         return DSHOT_TELEMETRY_INVALID;
     }
 
@@ -189,20 +216,25 @@ static void dshot_decode_telemetry_value(uint8_t motorIndex, uint32_t *pDecoded,
     uint16_t value = dshotTelemetryState.motorState[motorIndex].rawValue;
     const unsigned motorCount = motorDeviceCount();
 
-    if (dshotTelemetryState.motorState[motorIndex].telemetryTypes == DSHOT_NORMAL_TELEMETRY_MASK) {   /* Check DSHOT_TELEMETRY_TYPE_eRPM mask */
+    if (dshotTelemetryState.motorState[motorIndex].telemetryTypes == DSHOT_NORMAL_TELEMETRY_MASK)
+    { /* Check DSHOT_TELEMETRY_TYPE_eRPM mask */
         // Decode eRPM telemetry
         *pDecoded = dshot_decode_eRPM_telemetry_value(value);
 
         // Update debug buffer
-        if (motorIndex < motorCount && motorIndex < DEBUG16_VALUE_COUNT) {
+        if (motorIndex < motorCount && motorIndex < DEBUG16_VALUE_COUNT)
+        {
             DEBUG_SET(DEBUG_DSHOT_RPM_TELEMETRY, motorIndex, *pDecoded);
         }
 
         // Set telemetry type
         *pType = DSHOT_TELEMETRY_TYPE_eRPM;
-    } else {
+    }
+    else
+    {
         // Decode Extended DSHOT telemetry
-        switch (value & 0x0f00) {
+        switch (value & 0x0f00)
+        {
 
         case 0x0200:
             // Temperature range (in degree Celsius, just like Blheli_32 and KISS)
@@ -259,20 +291,27 @@ static void dshot_decode_telemetry_value(uint8_t motorIndex, uint32_t *pDecoded,
             // Set telemetry type
             *pType = DSHOT_TELEMETRY_TYPE_STATE_EVENTS;
             break;
+        case 0x0F00:
+            // extra telemtry data
+            *pDecoded = value & 0x00ff;
+
+            // Set telemetry type
+            *pType = DSHOT_TELEMETRY_TYPE_GPS;
+            break;
 
         default:
             // Decode as eRPM
             *pDecoded = dshot_decode_eRPM_telemetry_value(value);
 
             // Update debug buffer
-            if (motorIndex < motorCount && motorIndex < DEBUG16_VALUE_COUNT) {
+            if (motorIndex < motorCount && motorIndex < DEBUG16_VALUE_COUNT)
+            {
                 DEBUG_SET(DEBUG_DSHOT_RPM_TELEMETRY, motorIndex, *pDecoded);
             }
 
             // Set telemetry type
             *pType = DSHOT_TELEMETRY_TYPE_eRPM;
             break;
-
         }
     }
 }
@@ -284,19 +323,22 @@ static void dshotUpdateTelemetryData(uint8_t motorIndex, dshotTelemetryType_t ty
     dshotTelemetryState.motorState[motorIndex].telemetryTypes |= (1 << type);
 
     // Update max temp
-    if ((type == DSHOT_TELEMETRY_TYPE_TEMPERATURE) && (value > dshotTelemetryState.motorState[motorIndex].maxTemp)) {
+    if ((type == DSHOT_TELEMETRY_TYPE_TEMPERATURE) && (value > dshotTelemetryState.motorState[motorIndex].maxTemp))
+    {
         dshotTelemetryState.motorState[motorIndex].maxTemp = value;
     }
 }
 
 FAST_CODE_NOINLINE void updateDshotTelemetry(void)
 {
-    if (!motorConfig()->dev.useDshotTelemetry) {
+    if (!motorConfig()->dev.useDshotTelemetry)
+    {
         return;
     }
 
     // Only process telemetry in case it hasn´t been processed yet
-    if (dshotTelemetryState.rawValueState != DSHOT_RAW_VALUE_STATE_NOT_PROCESSED) {
+    if (dshotTelemetryState.rawValueState != DSHOT_RAW_VALUE_STATE_NOT_PROCESSED)
+    {
         return;
     }
 
@@ -305,16 +347,19 @@ FAST_CODE_NOINLINE void updateDshotTelemetry(void)
     uint32_t rpmSamples = 0;
 
     // Decode all telemetry data now to discharge interrupt from this task
-    for (uint8_t k = 0; k < motorCount; k++) {
+    for (uint8_t k = 0; k < motorCount; k++)
+    {
         dshotTelemetryType_t type;
         uint32_t value;
 
         dshot_decode_telemetry_value(k, &value, &type);
 
-        if (value != DSHOT_TELEMETRY_INVALID) {
+        if (value != DSHOT_TELEMETRY_INVALID)
+        {
             dshotUpdateTelemetryData(k, type, value);
 
-            if (type == DSHOT_TELEMETRY_TYPE_eRPM) {
+            if (type == DSHOT_TELEMETRY_TYPE_eRPM)
+            {
                 dshotRpm[k] = erpmToRpm(value);
                 erpmTotal += value;
                 rpmSamples++;
@@ -323,13 +368,15 @@ FAST_CODE_NOINLINE void updateDshotTelemetry(void)
     }
 
     // Update average
-    if (rpmSamples > 0) {
+    if (rpmSamples > 0)
+    {
         dshotRpmAverage = erpmToRpm(erpmTotal) / (float)rpmSamples;
     }
 
     // update filtered rotation speed of motors for features (e.g. "RPM filter")
     minMotorFrequencyHz = FLT_MAX;
-    for (int motor = 0; motor < getMotorCount(); motor++) {
+    for (int motor = 0; motor < getMotorCount(); motor++)
+    {
         motorFrequencyHz[motor] = pt1FilterApply(&motorFreqLpf[motor], erpmToHz * getDshotErpm(motor));
         minMotorFrequencyHz = MIN(minMotorFrequencyHz, motorFrequencyHz[motor]);
     }
@@ -371,9 +418,12 @@ bool isDshotMotorTelemetryActive(uint8_t motorIndex)
 bool isDshotTelemetryActive(void)
 {
     const unsigned motorCount = motorDeviceCount();
-    if (motorCount) {
-        for (unsigned i = 0; i < motorCount; i++) {
-            if (!isDshotMotorTelemetryActive(i)) {
+    if (motorCount)
+    {
+        for (unsigned i = 0; i < motorCount; i++)
+        {
+            if (!isDshotMotorTelemetryActive(i))
+            {
                 return false;
             }
         }
@@ -408,14 +458,18 @@ int16_t getDshotTelemetryMotorInvalidPercent(uint8_t motorIndex)
 {
     int16_t invalidPercent = 0;
 
-    if (isDshotMotorTelemetryActive(motorIndex)) {
+    if (isDshotMotorTelemetryActive(motorIndex))
+    {
         const uint32_t totalCount = dshotTelemetryQuality[motorIndex].packetCountSum;
         const uint32_t invalidCount = dshotTelemetryQuality[motorIndex].invalidCountSum;
-        if (totalCount > 0) {
+        if (totalCount > 0)
+        {
             invalidPercent = lrintf(invalidCount * 10000.0f / totalCount);
         }
-    } else {
-        invalidPercent = 10000;  // 100.00%
+    }
+    else
+    {
+        invalidPercent = 10000; // 100.00%
     }
     return invalidPercent;
 }
@@ -423,7 +477,8 @@ int16_t getDshotTelemetryMotorInvalidPercent(uint8_t motorIndex)
 void updateDshotTelemetryQuality(dshotTelemetryQuality_t *qualityStats, bool packetValid, timeMs_t currentTimeMs)
 {
     uint8_t statsBucketIndex = (currentTimeMs / DSHOT_TELEMETRY_QUALITY_BUCKET_MS) % DSHOT_TELEMETRY_QUALITY_BUCKET_COUNT;
-    if (statsBucketIndex != qualityStats->lastBucketIndex) {
+    if (statsBucketIndex != qualityStats->lastBucketIndex)
+    {
         qualityStats->packetCountSum -= qualityStats->packetCountArray[statsBucketIndex];
         qualityStats->invalidCountSum -= qualityStats->invalidCountArray[statsBucketIndex];
         qualityStats->packetCountArray[statsBucketIndex] = 0;
@@ -432,7 +487,8 @@ void updateDshotTelemetryQuality(dshotTelemetryQuality_t *qualityStats, bool pac
     }
     qualityStats->packetCountSum++;
     qualityStats->packetCountArray[statsBucketIndex]++;
-    if (!packetValid) {
+    if (!packetValid)
+    {
         qualityStats->invalidCountSum++;
         qualityStats->invalidCountArray[statsBucketIndex]++;
     }
@@ -446,8 +502,10 @@ void validateAndfixMotorOutputReordering(uint8_t *array, const unsigned size)
 {
     bool invalid = false;
 
-    for (unsigned i = 0; i < size; i++) {
-        if (array[i] >= size) {
+    for (unsigned i = 0; i < size; i++)
+    {
+        if (array[i] >= size)
+        {
             invalid = true;
             break;
         }
@@ -455,13 +513,17 @@ void validateAndfixMotorOutputReordering(uint8_t *array, const unsigned size)
 
     int valuesAsIndexes[size];
 
-    for (unsigned i = 0; i < size; i++) {
+    for (unsigned i = 0; i < size; i++)
+    {
         valuesAsIndexes[i] = -1;
     }
 
-    if (!invalid) {
-        for (unsigned i = 0; i < size; i++) {
-            if (-1 != valuesAsIndexes[array[i]]) {
+    if (!invalid)
+    {
+        for (unsigned i = 0; i < size; i++)
+        {
+            if (-1 != valuesAsIndexes[array[i]])
+            {
                 invalid = true;
                 break;
             }
@@ -470,8 +532,10 @@ void validateAndfixMotorOutputReordering(uint8_t *array, const unsigned size)
         }
     }
 
-    if (invalid) {
-        for (unsigned i = 0; i < size; i++) {
+    if (invalid)
+    {
+        for (unsigned i = 0; i < size; i++)
+        {
             array[i] = i;
         }
     }
