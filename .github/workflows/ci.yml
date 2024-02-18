@@ -46,7 +46,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        target: ["STM32F7X2"]
+        target: [STM32F405, "STM32F7X2"]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
